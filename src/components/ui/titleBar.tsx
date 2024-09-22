@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { appWindow } from "@tauri-apps/api/window";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -6,14 +8,17 @@ import {
   faWindowMaximize,
   faTimes,
 } from "@fortawesome/free-solid-svg-icons";
-import logo from "../assets/icon-64.png";
-import Image from "next/image";
+// import Image from "next/image";
+import ThemeButton from "@/components/ui/themeButton";
+import MenuBarComponent from "@/components/ui/menuBarComponent";
 
 export default function TitleBar() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    if (typeof window !== "undefined") {
+      setIsClient(true);
+    }
   }, []);
 
   const handleDrag = (event: React.MouseEvent) => {
@@ -29,19 +34,19 @@ export default function TitleBar() {
   };
 
   return (
-    <nav className="h-7 w-full bg-customBlack text-customGray flex justify-between items-center">
+    <nav className="h-8 w-full flex justify-between items-center">
+      <div className="h-full w-fit flex items-center">
+        <MenuBarComponent />
+        <ThemeButton />
+      </div>
       <div
-        className="h-full w-full flex items-center px-2"
+        className="h-full w-full flex items-center justify-center"
         onMouseDown={handleDrag}
         onDoubleClick={handleDoubleClick}
-      >
-        <div className="h-full w-fit bg-customGray rounded-full p-1">
-          <Image src={logo} alt="Logo" width={20} height={20} className="" />
-        </div>
-      </div>
-      <div className="flex items-center h-full">
+      ></div>
+      <div className="flex items-center h-full border rounded-sm">
         <button
-          className="hover:bg-customDarkGray h-full w-full px-2"
+          className="hover:bg-zinc-900 h-full w-full px-2"
           onClick={() => {
             appWindow.minimize();
           }}
@@ -49,7 +54,7 @@ export default function TitleBar() {
           <FontAwesomeIcon icon={faWindowMinimize} />
         </button>
         <button
-          className="hover:bg-customDarkGray h-full w-full px-2"
+          className="hover:bg-zinc-900 h-full w-full px-2"
           onClick={() => {
             appWindow.toggleMaximize();
           }}
