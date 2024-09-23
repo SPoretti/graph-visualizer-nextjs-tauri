@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { appWindow } from "@tauri-apps/api/window";
 import {
   EnterFullScreenIcon,
   ExitFullScreenIcon,
@@ -13,27 +12,35 @@ import MenuBarComponent from "@/components/ui/menuBarComponent";
 export default function TitleBar() {
   const [isClient, setIsClient] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [appWindow, setAppWindow] = useState<
+    import("@tauri-apps/api/window").WebviewWindow | null
+  >(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsClient(true);
-    }
+    setIsClient(true);
 
-    const checkMaximized = async () => {
-      const maximized = await appWindow.isMaximized();
-      setIsMaximized(maximized);
+    const initializeTauri = async () => {
+      const { appWindow } = await import("@tauri-apps/api/window");
+      setAppWindow(appWindow);
+
+      const checkMaximized = async () => {
+        const maximized = await appWindow.isMaximized();
+        setIsMaximized(maximized);
+      };
+
+      checkMaximized();
+
+      const resizeListener = appWindow.listen("tauri://resize", checkMaximized);
+
+      return () => {
+        resizeListener.then((unlisten) => unlisten());
+      };
     };
 
-    checkMaximized();
-
-    appWindow.listen("tauri://resize", checkMaximized);
-
-    return () => {
-      appWindow.listen("tauri://resize", checkMaximized);
-    };
+    initializeTauri();
   }, []);
 
-  if (!isClient) {
+  if (!isClient || !appWindow) {
     return null;
   }
 
@@ -47,15 +54,13 @@ export default function TitleBar() {
   };
 
   const handleDrag = (event: React.MouseEvent) => {
-    if (isClient && event.detail === 1) {
+    if (event.detail === 1) {
       appWindow.startDragging();
     }
   };
 
   const handleDoubleClick = () => {
-    if (isClient) {
-      appWindow.toggleMaximize();
-    }
+    appWindow.toggleMaximize();
   };
 
   return (

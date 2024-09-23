@@ -1,26 +1,27 @@
+"use client";
+
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import * as d3 from "d3";
 import { BinaryTree, TreeNode } from "./binaryTree";
-import "../../app/globals.css";
 import { TrashIcon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
+import InputComponent from "@/components/ui/inputBinaryTreeComponent";
+import { useTree } from "@/components/tree-context";
 
-interface BinaryTreeVisualizerProps {
-  tree: BinaryTree;
-}
-
-const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
-  tree,
-}) => {
+const BinaryTreeVisualizer: React.FC = () => {
+  const { tree, setTree } = useTree();
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const gRef = useRef<SVGGElement | null>(null);
   const [lastInsertedNode, setLastInsertedNode] = useState<TreeNode | null>(
     null,
   );
+  const [inputValue, setInputValue] = useState("");
 
   const renderTree = useCallback(() => {
-    if (svgRef.current) {
+    if (svgRef.current && gRef.current) {
       const svg = d3.select(svgRef.current);
-      svg.selectAll("*").remove();
+      const g = d3.select(gRef.current);
+      g.selectAll("*").remove();
 
       const margin = { top: 20, right: 20, bottom: 20, left: 20 };
       const width = svg.node()?.getBoundingClientRect().width ?? 0;
@@ -28,9 +29,7 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       const innerWidth = width - margin.left - margin.right;
       const innerHeight = height - margin.top - margin.bottom;
 
-      const g = svg
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+      g.attr("transform", `translate(${margin.left},${margin.top})`);
 
       if (tree.root) {
         const root = d3.hierarchy<TreeNode>(tree.root, (d) => {
@@ -129,10 +128,29 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   // Detect changes in the tree and update the last inserted node
   useEffect(() => {
     setLastInsertedNode(tree.lastInsertedNode);
-  }, [tree]);
+    renderTree();
+  }, [tree, renderTree]);
+
+  // Set up zoom behavior
+  useEffect(() => {
+    if (svgRef.current && gRef.current) {
+      const svg = d3.select(svgRef.current);
+      const g = d3.select(gRef.current);
+
+      const zoom = d3
+        .zoom<SVGSVGElement, unknown>()
+        .scaleExtent([0.5, 2])
+        .on("zoom", (event) => {
+          g.attr("transform", event.transform);
+        });
+
+      svg.call(zoom);
+    }
+  }, []);
 
   const handleClearTree = () => {
-    tree.root = null;
+    const newTree = new BinaryTree();
+    setTree(newTree);
     setLastInsertedNode(null);
     if (svgRef.current) {
       const svg = d3.select(svgRef.current);
@@ -140,15 +158,53 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
     }
   };
 
+  const handleInsert = () => {
+    const value = parseInt(inputValue, 10);
+    if (!isNaN(value)) {
+      const newTree = Object.assign(
+        Object.create(Object.getPrototypeOf(tree)),
+        tree,
+      );
+      newTree.insert(value);
+      setTree(newTree);
+      setLastInsertedNode(newTree.lastInsertedNode);
+      setInputValue("");
+      renderTree();
+    }
+  };
+
+  const getNodeValues = (node: TreeNode | null): number[] => {
+    if (!node) return [];
+    return [
+      node.value,
+      ...getNodeValues(node.left),
+      ...getNodeValues(node.right),
+    ];
+  };
+
+  const nodeValues = getNodeValues(tree.root);
+
   return (
-    <div className="flex flex-row justify-evenly items-start h-full w-full rounded-md border">
-      <svg ref={svgRef} className="w-full h-full"></svg>
+    <div className="flex flex-row justify-evenly items-start h-full w-full rounded-md border relative p-2">
+      <svg ref={svgRef} className="w-full h-full">
+        <g ref={gRef}></g>
+      </svg>
       <Button
-        className="w-10 h-10 bg-background text-foreground border p-2 rounded-sm hover:bg-red-700"
+        className="absolute top-2 right-2 w-10 h-10 bg-background text-foreground border p-2 rounded-sm hover:bg-red-700"
         onClick={handleClearTree}
       >
         <TrashIcon />
       </Button>
+      <div className="absolute bottom-2 right-2 text-xs bg-background text-foreground shadow">
+        Nodes: {nodeValues.join(", ")}
+      </div>
+      <div className="absolute top-2 left-2">
+        <InputComponent
+          inputValue={inputValue}
+          setInputValue={setInputValue}
+          onInsert={handleInsert}
+        />
+      </div>
     </div>
   );
 };

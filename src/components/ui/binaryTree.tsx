@@ -44,4 +44,46 @@ export class BinaryTree {
       }
     }
   }
+
+  // Serialize the tree to JSON
+  serialize(): string {
+    const serializeNode = (node: TreeNode | null): TreeNode | null => {
+      if (!node) return null;
+      return {
+        value: node.value,
+        left: serializeNode(node.left),
+        right: serializeNode(node.right),
+      };
+    };
+    return JSON.stringify(serializeNode(this.root));
+  }
+
+  // Deserialize the tree from JSON
+  static deserialize(data: string): BinaryTree {
+    interface SerializedTreeNode {
+      value: number;
+      left: SerializedTreeNode | null;
+      right: SerializedTreeNode | null;
+    }
+
+    const deserializeNode = (
+      obj: SerializedTreeNode | null,
+    ): TreeNode | null => {
+      if (!obj) return null;
+      const node = new TreeNode(obj.value);
+      node.left = deserializeNode(obj.left);
+      node.right = deserializeNode(obj.right);
+      return node;
+    };
+
+    const tree = new BinaryTree();
+    try {
+      const parsedData = JSON.parse(data);
+      tree.root = deserializeNode(parsedData);
+    } catch (error) {
+      console.error("Failed to deserialize tree:", error);
+      tree.root = null;
+    }
+    return tree;
+  }
 }

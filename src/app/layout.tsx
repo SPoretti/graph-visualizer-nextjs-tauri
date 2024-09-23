@@ -1,8 +1,9 @@
 "use client";
 
 import "./globals.css";
-import TitleBar from "../components/ui/titleBar";
-import { ThemeProvider } from "../components/theme-provider";
+import TitleBar from "@/components/ui/titleBar";
+import { ThemeProvider } from "@/components/theme-provider";
+import { TreeProvider } from "@/components/tree-context";
 
 export default function RootLayout({
   children,
@@ -18,8 +19,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <TitleBar />
-          {children}
+          <TreeProvider>
+            <TitleBar />
+            {children}
+          </TreeProvider>
         </ThemeProvider>
       </body>
     </html>
