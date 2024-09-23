@@ -10,6 +10,7 @@ export class TreeNode {
 
 export class BinaryTree {
   root: TreeNode | null = null;
+  lastInsertedNode: TreeNode | null = null;
 
   insert(value: number) {
     const newNode = new TreeNode(value);
@@ -19,6 +20,7 @@ export class BinaryTree {
     } else {
       this.insertNode(this.root, newNode);
     }
+    this.lastInsertedNode = newNode;
   }
 
   insertNode(node: TreeNode, newNode: TreeNode) {

@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import * as d3 from "d3";
 import { BinaryTree, TreeNode } from "./binaryTree";
 import "../../app/globals.css";
+import { TrashIcon } from "@radix-ui/react-icons";
+import { Button } from "@/components/ui/button";
 
 interface BinaryTreeVisualizerProps {
   tree: BinaryTree;
@@ -11,6 +13,9 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   tree,
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [lastInsertedNode, setLastInsertedNode] = useState<TreeNode | null>(
+    null,
+  );
 
   const renderTree = useCallback(() => {
     if (svgRef.current) {
@@ -28,7 +33,6 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
       if (tree.root) {
-        console.log("Tree root:", tree.root);
         const root = d3.hierarchy<TreeNode>(tree.root, (d) => {
           return d.left || d.right
             ? [d.left, d.right].filter(
@@ -40,28 +44,38 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         const treeLayout = d3.tree<TreeNode>().size([innerWidth, innerHeight]);
         const treeData = treeLayout(root);
 
-        console.log("Tree data:", treeData);
-        console.log("Tree nodes:", treeData.descendants());
-        console.log("Tree links:", treeData.links());
-
         // Draw links
         const linkGenerator = d3
           .linkVertical<
             d3.HierarchyPointLink<TreeNode>,
             d3.HierarchyPointNode<TreeNode>
           >()
-          .x((d) => d.x) // Use x for horizontal layout
-          .y((d) => d.y); // Use y for vertical layout
+          .x((d) => d.x)
+          .y((d) => d.y);
 
-        g.selectAll(".link")
+        const links = g
+          .selectAll(".link")
           .data(treeData.links())
           .enter()
           .append("path")
           .attr("class", "link")
-          .attr("d", linkGenerator)
           .attr("fill", "none")
           .attr("stroke", "var(--graph-node)")
-          .attr("stroke-width", 2);
+          .attr("stroke-width", 2)
+          .attr("d", linkGenerator);
+
+        // Animate links
+        links
+          .attr("stroke-dasharray", function () {
+            const length = (this as SVGPathElement).getTotalLength();
+            return `${length} ${length}`;
+          })
+          .attr("stroke-dashoffset", function () {
+            return (this as SVGPathElement).getTotalLength();
+          })
+          .transition()
+          .duration(1000)
+          .attr("stroke-dashoffset", 0);
 
         // Draw nodes
         const nodes = g
@@ -70,32 +84,71 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
           .enter()
           .append("g")
           .attr("class", "node")
-          .attr("transform", (d) => `translate(${d.x},${d.y})`); // Use x and y for horizontal layout
+          .attr("transform", (d) => `translate(${d.x},${d.y})`);
 
         nodes
           .append("circle")
-          .attr("r", 18)
+          .attr("r", 0)
           .attr("fill", "var(--graph-node-bg)")
-          .attr("stroke", "var(--graph-node)")
-          .attr("stroke-width", 2);
+          .attr("stroke", (d) =>
+            d.data === lastInsertedNode ? "red" : "var(--graph-node)",
+          )
+          .attr("stroke-width", 2)
+          .transition()
+          .duration(1000)
+          .attr("r", 18);
 
         nodes
           .append("text")
           .attr("dy", "0.35em")
           .attr("text-anchor", "middle")
           .attr("fill", "var(--graph-label)")
-          .text((d) => d.data.value);
+          .text((d) => d.data.value)
+          .style("opacity", 0)
+          .transition()
+          .duration(1000)
+          .style("opacity", 1);
       }
     }
-  }, [tree]);
+  }, [tree, lastInsertedNode]);
 
   useEffect(() => {
     renderTree();
   }, [renderTree]);
 
+  // Add resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      renderTree();
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [renderTree]);
+
+  // Detect changes in the tree and update the last inserted node
+  useEffect(() => {
+    setLastInsertedNode(tree.lastInsertedNode);
+  }, [tree]);
+
+  const handleClearTree = () => {
+    tree.root = null;
+    setLastInsertedNode(null);
+    if (svgRef.current) {
+      const svg = d3.select(svgRef.current);
+      svg.selectAll("*").remove();
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full w-full rounded-md">
-      <svg ref={svgRef} className="border w-full h-full"></svg>
+    <div className="flex flex-row justify-evenly items-start h-full w-full rounded-md border">
+      <svg ref={svgRef} className="w-full h-full"></svg>
+      <Button
+        className="w-10 h-10 bg-background text-foreground border p-2 rounded-sm hover:bg-red-700"
+        onClick={handleClearTree}
+      >
+        <TrashIcon />
+      </Button>
     </div>
   );
 };

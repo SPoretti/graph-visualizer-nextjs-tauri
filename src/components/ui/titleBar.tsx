@@ -2,24 +2,49 @@
 
 import { useEffect, useState } from "react";
 import { appWindow } from "@tauri-apps/api/window";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faWindowMinimize,
-  faWindowMaximize,
-  faTimes,
-} from "@fortawesome/free-solid-svg-icons";
-// import Image from "next/image";
-import ThemeButton from "@/components/ui/themeButton";
+  EnterFullScreenIcon,
+  ExitFullScreenIcon,
+  Cross2Icon,
+  DividerHorizontalIcon,
+} from "@radix-ui/react-icons";
 import MenuBarComponent from "@/components/ui/menuBarComponent";
 
 export default function TitleBar() {
   const [isClient, setIsClient] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsClient(true);
     }
+
+    const checkMaximized = async () => {
+      const maximized = await appWindow.isMaximized();
+      setIsMaximized(maximized);
+    };
+
+    checkMaximized();
+
+    appWindow.listen("tauri://resize", checkMaximized);
+
+    return () => {
+      appWindow.listen("tauri://resize", checkMaximized);
+    };
   }, []);
+
+  if (!isClient) {
+    return null;
+  }
+
+  const handleToggleMaximize = async () => {
+    if (isMaximized) {
+      await appWindow.unmaximize();
+    } else {
+      await appWindow.maximize();
+    }
+    setIsMaximized(!isMaximized);
+  };
 
   const handleDrag = (event: React.MouseEvent) => {
     if (isClient && event.detail === 1) {
@@ -34,32 +59,29 @@ export default function TitleBar() {
   };
 
   return (
-    <nav className="h-8 w-full flex justify-between items-center">
-      <div className="h-full w-fit flex items-center">
+    <nav className="h-10 pl-1 w-full flex justify-between items-center border-b">
+      <div className="h-8 w-fit flex items-center">
         <MenuBarComponent />
-        <ThemeButton />
       </div>
       <div
-        className="h-full w-full flex items-center justify-center"
+        className="h-full w-full flex items-center"
         onMouseDown={handleDrag}
         onDoubleClick={handleDoubleClick}
       ></div>
-      <div className="flex items-center h-full border rounded-sm">
+      <div className="flex items-center h-full">
         <button
           className="hover:bg-zinc-900 h-full w-full px-2"
           onClick={() => {
             appWindow.minimize();
           }}
         >
-          <FontAwesomeIcon icon={faWindowMinimize} />
+          <DividerHorizontalIcon />
         </button>
         <button
           className="hover:bg-zinc-900 h-full w-full px-2"
-          onClick={() => {
-            appWindow.toggleMaximize();
-          }}
+          onClick={handleToggleMaximize}
         >
-          <FontAwesomeIcon icon={faWindowMaximize} />
+          {isMaximized ? <ExitFullScreenIcon /> : <EnterFullScreenIcon />}
         </button>
         <button
           className="hover:bg-red-700 h-full w-full px-2"
@@ -67,7 +89,7 @@ export default function TitleBar() {
             appWindow.close();
           }}
         >
-          <FontAwesomeIcon icon={faTimes} />
+          <Cross2Icon />
         </button>
       </div>
     </nav>

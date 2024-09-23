@@ -31,7 +31,7 @@ export default function Home() {
           onInsert={handleInsert}
         />
       </div>
-      <div className="w-full flex-grow">
+      <div className="w-full flex-grow rounded-md">
         <BinaryTreeVisualizer tree={tree} />
       </div>
     </div>
