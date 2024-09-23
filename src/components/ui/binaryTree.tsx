@@ -1,33 +1,21 @@
-// binaryTree.tsx
-export interface TreeNode {
+export class TreeNode {
   value: number;
-  left: TreeNode | null;
-  right: TreeNode | null;
-}
-
-export class TreeNodeImpl implements TreeNode {
-  value: number;
-  left: TreeNode | null;
-  right: TreeNode | null;
+  left: TreeNode | null = null;
+  right: TreeNode | null = null;
 
   constructor(value: number) {
     this.value = value;
-    this.left = null;
-    this.right = null;
   }
 }
 
 export class BinaryTree {
-  root: TreeNode | null;
-
-  constructor() {
-    this.root = null;
-  }
+  root: TreeNode | null = null;
 
   insert(value: number) {
-    const newNode = new TreeNodeImpl(value);
+    const newNode = new TreeNode(value);
     if (this.root === null) {
       this.root = newNode;
+      console.log(`Inserted root node: ${value}`);
     } else {
       this.insertNode(this.root, newNode);
     }
@@ -37,12 +25,18 @@ export class BinaryTree {
     if (newNode.value < node.value) {
       if (node.left === null) {
         node.left = newNode;
+        console.log(
+          `Inserted node: ${newNode.value} to the left of ${node.value}`,
+        );
       } else {
         this.insertNode(node.left, newNode);
       }
     } else {
       if (node.right === null) {
         node.right = newNode;
+        console.log(
+          `Inserted node: ${newNode.value} to the right of ${node.value}`,
+        );
       } else {
         this.insertNode(node.right, newNode);
       }

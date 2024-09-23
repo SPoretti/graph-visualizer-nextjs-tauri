@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import * as d3 from "d3";
 import { BinaryTree, TreeNode } from "./binaryTree";
-import { useTheme } from "next-themes";
 import "../../app/globals.css";
 
 interface BinaryTreeVisualizerProps {
@@ -12,7 +11,6 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   tree,
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const { theme } = useTheme();
 
   const renderTree = useCallback(() => {
     if (svgRef.current) {
@@ -30,10 +28,21 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
       if (tree.root) {
-        const root = d3.hierarchy<TreeNode>(tree.root);
+        console.log("Tree root:", tree.root);
+        const root = d3.hierarchy<TreeNode>(tree.root, (d) => {
+          return d.left || d.right
+            ? [d.left, d.right].filter(
+                (node): node is TreeNode => node !== null,
+              )
+            : [];
+        });
 
         const treeLayout = d3.tree<TreeNode>().size([innerWidth, innerHeight]);
         const treeData = treeLayout(root);
+
+        console.log("Tree data:", treeData);
+        console.log("Tree nodes:", treeData.descendants());
+        console.log("Tree links:", treeData.links());
 
         // Draw links
         const linkGenerator = d3
@@ -41,8 +50,8 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
             d3.HierarchyPointLink<TreeNode>,
             d3.HierarchyPointNode<TreeNode>
           >()
-          .x((d) => d.x)
-          .y((d) => d.y);
+          .x((d) => d.x) // Use x for horizontal layout
+          .y((d) => d.y); // Use y for vertical layout
 
         g.selectAll(".link")
           .data(treeData.links())
@@ -61,7 +70,7 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
           .enter()
           .append("g")
           .attr("class", "node")
-          .attr("transform", (d) => `translate(${d.x},${d.y})`);
+          .attr("transform", (d) => `translate(${d.x},${d.y})`); // Use x and y for horizontal layout
 
         nodes
           .append("circle")
@@ -78,7 +87,7 @@ const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
           .text((d) => d.data.value);
       }
     }
-  }, [tree, theme]);
+  }, [tree]);
 
   useEffect(() => {
     renderTree();
